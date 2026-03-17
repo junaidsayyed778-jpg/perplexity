@@ -11,6 +11,7 @@ app.use(express.json())
 app.use(cookieParser())
 
 connectDB();
+
 app.use("/api/auth", authRouter)
 
 export default app;
