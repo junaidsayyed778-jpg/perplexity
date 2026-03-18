@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* FORCE GLOBAL DARK THEME */
+body {
+  background-color: #191A1A; /* Perplexity Dark Background */
+  color: #e5e5e5;
+  margin: 0;
+  padding: 0;
+}
+
+/* Remove default white background from root */
+#root {
+  min-height: 100vh;
+  width: 100%;
+}
