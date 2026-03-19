@@ -5,7 +5,7 @@ import readline from "readline";
 import { ChatMistralAI } from "@langchain/mistralai";
 import { z } from "zod";
 import { sendEmail } from "./emailService.js";
-import { HumanMessage } from "@langchain/core/messages";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 
 // ✅ Email schema (YOU MISSED THIS)
 const emailSchema = z.object({
@@ -127,6 +127,16 @@ export async function generateResponse(message) {
   return response.content; // FIXED
 }
 
-export async function generateChatTitle(message){
-  
+export async function generateChatTitle(message) {
+  const response = await model.invoke([
+    new SystemMessage(`You are a helpful assistant that generates concise and descriptive titles for chat conversations.
+
+User will provide you with the first message of a chat. Based on that message, generate a short title (3-5 words) that captures the essence of the conversation. The title should be specific, clear, and not generic.
+
+Return ONLY the title. No explanation.`),
+
+    new HumanMessage(`Generate a title for this message: ${message}`)
+  ]);
+
+  return response.content.trim(); // ✅ FIXED
 }
