@@ -2,34 +2,34 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import readline from "readline";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { tool } from "@langchain/core/tools";
+import { ChatMistralAI } from "@langchain/mistralai";
 import { z } from "zod";
 import { sendEmail } from "./emailService.js";
-const emailTool = tool(sendEmail, {
-  name: "emailTool",
-  description: "Use this tool to send an email",
-  schema: z.object({
-    to: z.string().describe("The recipient emial address"),
-    subject: z.string().describe("The email subject"),
-    html: z.string().describe("The email content in HTML format").optional(),
-    text: z
-      .string()
-      .describe("The email content in plain text format")
-      .optional(),
-  }),
+import { HumanMessage } from "@langchain/core/messages";
+
+// ✅ Email schema (YOU MISSED THIS)
+const emailSchema = z.object({
+  to: z.string().email(),
+  subject: z.string(),
+  text: z.string().optional(),
+  html: z.string().optional(),
 });
 
-const model = new ChatGoogleGenerativeAI({
-  model : "gemini-1.5-flash",
-  apiKey: process.env.GEMINI_API_KEY,
+// ✅ Initialize model
+const model = new ChatMistralAI({
+  model: "mistral-small",
+  apiKey: process.env.MISTRAL_API_KEY,
 });
+
+// ✅ CLI setup
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
+// ✅ Message history (optional for future context)
 const messages = [];
+
 function startCLI() {
   function ask() {
     rl.question("💬 Enter your prompt: ", async (input) => {
@@ -40,46 +40,65 @@ function startCLI() {
       }
 
       try {
-        messages.push({ role: "user", content: input });
+        console.log("⏳ Calling AI...");
 
-      console.log("⏳ Calling AI...");
-
-const response = await model.invoke(`
+        // ✅ Proper structured prompt
+        const response = await model.invoke([
+          new HumanMessage(`
 You are an AI email assistant.
 
 User request: ${input}
 
-Return ONLY valid JSON:
+Return ONLY raw JSON.
+DO NOT wrap in markdown.
+DO NOT use \`\`\`.
+
+Format:
 {
   "to": "email",
   "subject": "subject",
   "text": "email body"
 }
-`);
+  `),
+        ]);
 
-console.log("✅ AI Raw Response:", response);
-
-        messages.push({
-          role: "assistant",
-          content: response.content,
-        });
-
-        let emailData;
-
-        try {
-          emailData = JSON.parse(response.content);
-        } catch (err) {
-          console.log("❌ Failed to parse AI response");
-          return;
+        // ✅ FIX: use .content instead of .text
+        function safeParseJSON(text) {
+          try {
+            return JSON.parse(text);
+          } catch {
+            try {
+              const cleaned = text
+                .replace(/```json/g, "")
+                .replace(/```/g, "")
+                .trim();
+              return JSON.parse(cleaned);
+            } catch {
+              return null;
+            }
+          }
         }
 
+        const emailData = safeParseJSON(response.content);
+
+        if (!emailData) {
+          console.log("❌ Could not parse AI response");
+          console.log("Raw:", response.content);
+          return ask();
+        }
+        // ✅ Validate using Zod
         const parsed = emailSchema.safeParse(emailData);
 
         if (!parsed.success) {
           console.log("❌ Invalid email data from AI");
           console.log(parsed.error);
-          return;
+          return ask();
         }
+
+        // ✅ Decide if email should be sent
+        const isEmailIntent =
+          input.toLowerCase().includes("send") ||
+          input.toLowerCase().includes("email");
 
         if (isEmailIntent) {
           await sendEmail(parsed.data);
@@ -87,7 +106,6 @@ console.log("✅ AI Raw Response:", response);
         } else {
           console.log("🤖 AI:", response.content);
         }
-        console.log("🤖 AI:", response.content);
       } catch (err) {
         console.error("❌ Error:", err.message);
       }
@@ -99,5 +117,16 @@ console.log("✅ AI Raw Response:", response);
   ask();
 }
 
-// 👇 export this
+// ✅ Export CLI
 export { startCLI };
+
+// ✅ API-style function (for frontend/backend use)
+export async function generateResponse(message) {
+  const response = await model.invoke([new HumanMessage(message)]);
+
+  return response.content; // FIXED
+}
+
+export async function generateChatTitle(message){
+  
+}

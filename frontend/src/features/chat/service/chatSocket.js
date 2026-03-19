@@ -9,3 +9,4 @@ export const initializeSocketConection = () => {
         console.log("Connect to Socket.IO server")
     })
 }
+

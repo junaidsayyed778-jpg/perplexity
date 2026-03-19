@@ -1,10 +1,9 @@
-import dotenv from "dotenv";
-dotenv.config();
+
 import express from "express";
 import cors from "cors"
 import authRouter from "./routes/authRoutes.js";
+import chatRouter from "./routes/chatRoutes.js";
 import cookieParser from "cookie-parser";
-import connectDB  from "./config/database.js";
 import morgan from "morgan";
 
 const app = express()
@@ -19,8 +18,9 @@ app.use(cors({
 
 app.use(morgan("dev"))
 
-connectDB();
+
 
 app.use("/api/auth", authRouter)
+app.use("/api/chats", chatRouter)
 
 export default app;
