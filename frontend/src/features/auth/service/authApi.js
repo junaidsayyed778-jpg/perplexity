@@ -15,7 +15,7 @@ export async function register({ email, username, password}){
 }
 
 export async function login({ email, password}) {
-    const response = await api.psot("/login", {
+    const response = await api.post("/login", {
         email,
         password
     })
@@ -23,8 +23,15 @@ export async function login({ email, password}) {
     return response.data
 }
 
-export async function getMe(){
+export async function getMeApi(){
     const response = await api.get("/get-me")
 
     return response.data
+}
+
+export async function logout(){
+    const res = await api.post("/logout", {},{
+
+    })
+    return res.data
 }

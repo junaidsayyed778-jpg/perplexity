@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, Lock, Mail } from 'lucide-react';
+import { useAuth } from '../hook/useAuth';
 
 const Login = () => {
   const navigate = useNavigate();
-  
+  const { handleLogin } = useAuth()
   // State for two-way binding
   const [formData, setFormData] = useState({
     email: '',
@@ -19,10 +20,11 @@ const Login = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     console.log('Logging in with:', formData);
     // Simulate API call then navigate
+    await handleLogin(formData)
     navigate('/');
   };
 

@@ -1,7 +1,7 @@
 
 
 import { Router } from "express";
-import { register, verifyEmail, login, getMe } from "../controllers/authController.js";
+import { register, login, getMe, logout } from "../controllers/authController.js";
 import { authUser } from "../middlewares/authMiddlewares.js";
 
 
@@ -39,6 +39,11 @@ authRouter.get('/get-me', authUser, getMe)
  * @access Public
  * @query { token }
  */
-authRouter.get('/verify-email', verifyEmail)
 
+/**
+ * @route POST /api/auth/logout
+ * @desc Logout user by blacklisting the token
+ * @access Private
+ */
+authRouter.post("/logout", logout)
 export default authRouter;
