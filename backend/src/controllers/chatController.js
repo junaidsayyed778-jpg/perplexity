@@ -16,12 +16,18 @@ export async function sendMessage(req, res) {
     title: title,
   })
 
+  const userMessage = await messageModel.create({
+    chat : chat._id,
+    content: message,
+    role: "User",
+  })
+  
   const aiMessage = await messageModel.create({
     chat: chat._id,
     content: result,
     role: "Assistant",
   });
-  
+
   res.json({
   title,
   chat ,
