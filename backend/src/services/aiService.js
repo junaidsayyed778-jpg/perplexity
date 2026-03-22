@@ -5,7 +5,7 @@ import readline from "readline";
 import { ChatMistralAI } from "@langchain/mistralai";
 import { z } from "zod";
 import { sendEmail } from "./emailService.js";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { HumanMessage, SystemMessage , AIMessage} from "@langchain/core/messages";
 
 // ✅ Email schema (YOU MISSED THIS)
 const emailSchema = z.object({
@@ -120,11 +120,17 @@ Format:
 // ✅ Export CLI
 export { startCLI };
 
-// ✅ API-style function (for frontend/backend use)
-export async function generateResponse(message) {
-  const response = await model.invoke([new HumanMessage(message)]);
-
-  return response.content; // FIXED
+export async function generateResponse(messages) {
+  const response = await model.invoke(
+    messages.map(msg => {
+      if (msg.role === "User") {
+        return new HumanMessage(msg.content);
+      } else if (msg.role === "Assistant") {
+        return new AIMessage(msg.content);
+      }
+    }).filter(Boolean) // filter out any undefined
+  );
+  return response.content;
 }
 
 export async function generateChatTitle(message) {
