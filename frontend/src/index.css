@@ -1,15 +1,30 @@
 @import "tailwindcss";
 
-/* FORCE GLOBAL DARK THEME */
+
 body {
   background-color: #191A1A; /* Perplexity Dark Background */
   color: #e5e5e5;
   margin: 0;
-  padding: 0;
+  overflow: hidden; /* Prevent body scroll, handle inside app */
 }
 
-/* Remove default white background from root */
 #root {
-  min-height: 100vh;
+  height: 100vh;
   width: 100%;
+}
+
+/* Custom Scrollbar for Dark Theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #191A1A;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
 }
