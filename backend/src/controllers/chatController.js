@@ -46,3 +46,68 @@ export async function sendMessage(req, res) {
 
   console.log(messages);
 }
+
+export async function getChat(req, res){
+
+  const user = req.user
+
+  const { page = 1, limit = 10 } = req.query;
+  const chats = await (await chatModel.find({ user: user.id}))
+  .toSorted({ updatedAt: -1 })
+   .skip((page - 1) * limit)
+  .limit(Number(limit));
+
+  res.status(200).json({
+    message: "Chats retrieved successfully",
+    chats,
+  })
+}
+
+ export async function getMessages(req, res){
+  const { chatId } = req.params
+
+  const chat = await chatModel.findOne({ 
+    _id: chatId,
+    user: req.user.id
+  })
+
+  if(!chat){
+    return res.status(404).json({
+      message: "Chat not found"
+    })
+  }
+
+  const messages = await messageModel.find({
+    chat: chatId
+    
+  })
+
+  res.status(200).json({
+    message: "Messages retrived successfully",
+    messages
+  })
+ }
+
+ export async function deleteChat(req, res){
+
+  const { chatId } = req.params
+
+  const chat = await chatModel.findOneAndDelete({
+    _id: chatId,
+    user: req.user.id
+  })
+
+  await messageModel.deleteMany({
+    chat: chatId
+  })
+
+  if(!chat){
+    return res.status(404).json({
+      message: "Chat not found"
+    })
+  }
+
+  res.status(200).json({
+    message: "Chat deleted successfully"
+  })
+ }
