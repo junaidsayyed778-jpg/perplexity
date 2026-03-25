@@ -6,21 +6,21 @@ const api = axios.create({
     withCredentials: true,
 });
 
-// ✅ sendMessage: Accept direct parameters
+//✅ sendMessage: Accept direct parameters
 export const sendMessage = async (message, chatId) => {
     console.log("📤 API sendMessage:", { message, chatId });
     const response = await api.post("/message", { message, chat: chatId });
     return response.data;
 };
 
-// ✅ getChat: No params needed
+//✅ getChat: No params needed
 export const getChat = async () => {
     console.log("📤 API getChat: fetching all chats");
     const response = await api.get("/");
     return response.data;
 };
 
-// ✅ getMessages: Accept chatId as DIRECT PARAMETER (not destructured)
+//✅ getMessages: Accept chatId as DIRECT PARAMETER (not destructured)
 export const getMessages = async (chatId) => {
     console.log("📤 API getMessages:", { chatId, url: `/${chatId}/messages` });
     
@@ -32,7 +32,7 @@ export const getMessages = async (chatId) => {
     return response.data;
 };
 
-// ✅ deleteChat: Accept direct parameter + fix URL
+//✅ deleteChat: Accept direct parameter + fix URL
 export const deleteChat = async (chatId) => {
     console.log("📤 API deleteChat:", { chatId });
     const response = await api.delete(`/${chatId}`);  // ✅ Fixed: was `/delete${chatId}`
