@@ -3,119 +3,146 @@ import {
   createNewChat,
   setChats,
   setCurrentChatId,
-  setLoading
-} from "../chatSlice"
+  setLoading,
+} from "../chatSlice";
 
-import { sendMessage, getChat, getMessages } from "../service/chatApi"
-import { initializeSocketConection } from "../service/chatSocket"
-import { useDispatch, useSelector } from "react-redux"
+import { sendMessage, getChat, getMessages } from "../service/chatApi";
+import { initializeSocketConnection } from "../service/chatSocket";
+import { useDispatch, useSelector } from "react-redux";
 
 export const useChat = () => {
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
-  const { chats, currentChatId, isLoading } = useSelector((state) => state.chat)
-  const currentChat = chats[currentChatId] || { messages: [] }
+  const { chats, currentChatId, isLoading } = useSelector(
+    (state) => state.chat,
+  );
+  const currentChat = chats[currentChatId] || { messages: [] };
 
   // ================= SEND MESSAGE =================
-  async function handleSendMessage({ message }) {
-    if (!message.trim()) return
+// ✅ src/hooks/useChat.js - Updated handleSendMessage with full debug
 
-    let activeChatId = currentChatId
-
-    // 🟢 Create temp chat if none
-    if (!activeChatId || activeChatId === "null" || activeChatId === "undefined") {
-      activeChatId = `temp_${Date.now()}`;
-
-      dispatch(createNewChat({
-        chatId: activeChatId,
-        title: "New Chat"
-      }))
-
-      dispatch(setCurrentChatId(activeChatId))
-    }
-
-    // 🟢 Optimistic UI
-    dispatch(addNewMessage({
-      chatId: activeChatId,
-      content: message,
-      role: "user",
-      id: `temp_${Date.now()}`
-    }))
-
-    dispatch(setLoading(true))
-
- try {
-      const response = await sendMessage({
-        message,
-        chat: activeChatId.startsWith("temp_") ? null : activeChatId
-      });
-
-      const { chat: backendChat, userMessage, aiMessage } = response;
-      const realChatId = backendChat?. _id;
-
-      // 🟢 If backend gave new real ID, migrate from temp
-      if (realChatId && realChatId !== activeChatId) {
-        // Get messages from temp chat
-        const tempMessages = chats[activeChatId]?.messages || [];
-        
-        // Create new chat entry with real ID
-        dispatch(createNewChat({
-          chatId: realChatId,
-          title: backendChat.title
-        }));
-
-        // Migrate all messages to real chat
-        tempMessages.forEach((msg) => {
-          dispatch(addNewMessage({
-            chatId: realChatId,
-            content: msg.content,
-            role: msg.role,
-            id: msg.id
-          }));
-        });
-
-        // Update current chat ID to real one
-        dispatch(setCurrentChatId(realChatId));
-        
-        // Optional: Clean up temp chat
-        // dispatch(removeChat(activeChatId)); // if you have this action
-      }
-
-      // 🟢 Add AI response (use realChatId)
-      const targetChatId = realChatId || activeChatId;
-      
-      // Add user message with real ID if it was temp
-      if (userMessage && userMessage.id) {
-        dispatch(addNewMessage({
-          chatId: targetChatId,
-          content: userMessage.content,
-          role: userMessage.role,
-          id: userMessage.id
-        }));
-      }
-      
-      // Add AI message
-      dispatch(addNewMessage({
-        chatId: targetChatId,
-        content: aiMessage.content,
-        role: aiMessage.role?.toLowerCase() || "assistant",
-        id: aiMessage.id
-      }));
-
-    } catch (err) {
-      console.error("error sending message", err)
-    }
-
-    dispatch(setLoading(false))
+async function handleSendMessage({ message }) {
+  console.log("🪝 [1] handleSendMessage called:", { 
+    message: message?.slice(0, 50), 
+    currentChatId,
+    hasChats: Object.keys(chats).length 
+  });
+  
+  if (!message?.trim()) {
+    console.warn("⚠️ Empty message, returning");
+    return;
   }
 
+  let activeChatId = currentChatId;
+
+  // 🟢 Create temp chat if none exists
+  if (!activeChatId || activeChatId === "undefined" || activeChatId === "null") {
+    activeChatId = `temp_${Date.now()}`;
+    console.log("🆕 [2] Created temp chat ID:", activeChatId);
+
+    dispatch(createNewChat({ chatId: activeChatId, title: "New Chat" }));
+    dispatch(setCurrentChatId(activeChatId));
+  }
+
+  // 🟢 Optimistic UI: Add user message immediately
+  const tempUserId = `temp_user_${Date.now()}`;
+  console.log("📤 [3] Dispatching optimistic user message:", { 
+    chatId: activeChatId, 
+    id: tempUserId, 
+    content: message?.slice(0, 30) 
+  });
+  
+  dispatch(addNewMessage({
+    chatId: activeChatId,
+    content: message,
+    role: "user",
+    id: tempUserId
+  }));
+
+  dispatch(setLoading(true));
+  console.log("🔄 [4] setLoading(true)");
+
+  try {
+    console.log("🌐 [5] Calling API sendMessage...");
+    
+    const response = await sendMessage(message, activeChatId.startsWith("temp_") ? null : activeChatId);
+    
+    console.log("✅ [6] API Response received:", {
+      hasChat: !!response?.chat,
+      chatId: response?.chat?._id || response?.chat?.id,
+      hasAiMessage: !!response?.aiMessage,
+      aiContent: response?.aiMessage?.content?.slice(0, 50) + "..."
+    });
+
+    const { chat: backendChat, aiMessage } = response;
+    const realChatId = backendChat?._id || backendChat?.id;
+    
+    console.log("🔗 [7] Chat ID check:", { 
+      temp: activeChatId, 
+      real: realChatId, 
+      shouldMigrate: realChatId && realChatId !== activeChatId 
+    });
+
+    // 🟢 Migrate from temp ID to real backend ID
+    if (realChatId && realChatId !== activeChatId) {
+      console.log("🔄 [8] Migrating temp → real chat");
+      
+      const tempMessages = chats[activeChatId]?.messages || [];
+      console.log("📦 [8b] Migrating messages count:", tempMessages.length);
+      
+      dispatch(createNewChat({
+        chatId: realChatId,
+        title: backendChat?.title || "New Chat"
+      }));
+
+      tempMessages.forEach((msg, idx) => {
+        console.log(`📦 [8c] Migrating message ${idx}:`, msg.id);
+        dispatch(addNewMessage({
+          chatId: realChatId,
+          content: msg.content,
+          role: msg.role,
+          id: msg.id
+        }));
+      });
+
+      dispatch(setCurrentChatId(realChatId));
+      activeChatId = realChatId;
+    }
+
+    // 🟢 Add AI response
+    const targetChatId = realChatId || activeChatId;
+    console.log("🤖 [9] Adding AI message to chat:", targetChatId);
+    
+    const aiMsgId = String(aiMessage?.id || aiMessage?._id || `ai_${Date.now()}`);
+    console.log("🤖 [9b] AI Message ID:", aiMsgId);
+    
+    dispatch(addNewMessage({
+      chatId: targetChatId,
+      content: String(aiMessage?.content || ""),
+      role: String(aiMessage?.role || "assistant").toLowerCase(),
+      id: aiMsgId
+    }));
+
+    console.log("✅ [10] handleSendMessage completed successfully");
+
+  } catch (err) {
+    console.error("❌ [ERROR] handleSendMessage:", {
+      name: err.name,
+      message: err.message,
+      stack: err.stack
+    });
+  } finally {
+    dispatch(setLoading(false));
+    console.log("🔄 [11] setLoading(false)");
+  }
+}
   // ================= GET CHATS =================
   async function handleGetChats() {
-    dispatch(setLoading(true))
+    dispatch(setLoading(true));
 
     try {
-      const data = await getChat()   // ✅ API call
-      const chatList = data.chats || []  // backend should send array
+      const data = await getChat(); // ✅ API call
+      const chatList = data.chats || []; // backend should send array
 
       const formattedChats = chatList.reduce((acc, chat) => {
         acc[chat._id] = {
@@ -123,67 +150,66 @@ export const useChat = () => {
           title: chat.title,
           messages: chat.messages || [],
           lastUpdated: chat.updatedAt,
-        }
-        return acc
-      }, {})
+        };
+        return acc;
+      }, {});
 
-      dispatch(setChats(formattedChats))
-
+      dispatch(setChats(formattedChats));
     } catch (err) {
-      console.error("error fetching chats", err)
+      console.error("error fetching chats", err);
     }
 
-    dispatch(setLoading(false))
-  }
-
-async function handleOpenChat(chatId) {
-  console.log("🪝 handleOpenChat called with:", chatId);
-  
-  if (!chatId || chatId === "undefined" || chatId === "null") {
-    console.warn("🚫 Blocked invalid chatId:", chatId);
-    return;
-  }
-
-  dispatch(setLoading(true));
-  
-  try {
-    // ✅ Pass chatId directly (not as object)
-    const data = await getMessages(chatId);
-    
-    const { messages = [], title } = data;
-    const formattedMessages = messages.map((msg) => ({
-      id: msg._id || msg.id,
-      content: msg.content,
-      role: msg.role?.toLowerCase() || "assistant",
-      timestamp: msg.createdAt || msg.timestamp
-    }));
-
-    dispatch(createNewChat({ chatId, title: title || "Chat" }));
-    
-    formattedMessages.forEach((msg) => {
-      dispatch(addNewMessage({
-        chatId,
-        content: msg.content,
-        role: msg.role,
-        id: msg.id
-      }));
-    });
-
-    dispatch(setCurrentChatId(chatId));
-
-  } catch (err) {
-    console.error("Error in handleOpenChat:", err);
-  } finally {
     dispatch(setLoading(false));
   }
-}
 
-  async function handleNewChat(){
+  async function handleOpenChat(chatId) {
+    console.log("🪝 handleOpenChat called with:", chatId);
+
+    if (!chatId || chatId === "undefined" || chatId === "null") {
+      console.warn("🚫 Blocked invalid chatId:", chatId);
+      return;
+    }
+
+    dispatch(setLoading(true));
+
+    try {
+      // ✅ Pass chatId directly (not as object)
+      const data = await getMessages(chatId);
+
+      const { messages = [], title } = data;
+      const formattedMessages = messages.map((msg) => ({
+        id: msg._id || msg.id,
+        content: msg.content,
+        role: msg.role?.toLowerCase() || "assistant",
+        timestamp: msg.createdAt || msg.timestamp,
+      }));
+
+      dispatch(createNewChat({ chatId, title: title || "Chat" }));
+
+      formattedMessages.forEach((msg) => {
+        dispatch(
+          addNewMessage({
+            chatId,
+            content: msg.content,
+            role: msg.role,
+            id: msg.id,
+          }),
+        );
+      });
+
+      dispatch(setCurrentChatId(chatId));
+    } catch (err) {
+      console.error("Error in handleOpenChat:", err);
+    } finally {
+      dispatch(setLoading(false));
+    }
+  }
+
+  async function handleNewChat() {
     dispatch(setCurrentChatId(null));
-
   }
   return {
-    initializeSocketConection,
+    initializeSocketConnection,
     handleSendMessage,
     handleGetChats,
     handleOpenChat,
@@ -191,6 +217,6 @@ async function handleOpenChat(chatId) {
     messages: currentChat.messages,
     chatHistory: Object.values(chats),
     activeChatId: currentChatId,
-    isLoading
-  }
-}
+    isLoading,
+  };
+};

@@ -2,7 +2,6 @@ import dotenv from "dotenv";
 dotenv.config(); // ✅ FIRST LINE
 
 import app from "./src/app.js";
-import { startCLI } from "./src/services/aiService.js";
 import { initSocket } from "./src/sockets/serverSocket.js";
 import http from "http";
 import connectDB from "./src/config/database.js";
@@ -22,5 +21,3 @@ httpServer.listen(PORT, () => {
   console.log(`Server is running on PORT ${PORT}`);
 });
 
-// ✅ Call AFTER everything is ready
-startCLI();

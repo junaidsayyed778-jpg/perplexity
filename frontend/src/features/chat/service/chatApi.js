@@ -1,40 +1,69 @@
-// ✅ src/service/chatApi.js
+// ✅ src/service/chatApi.js - COMPLETE REPLACEMENT
 import axios from "axios";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api/chats";
+
 const api = axios.create({
-    baseURL: "http://localhost:3000/api/chats",  // ✅ Verify this matches your backend port
+    baseURL: API_BASE,
     withCredentials: true,
+    headers: { "Content-Type": "application/json" }
 });
 
-//✅ sendMessage: Accept direct parameters
+// Attach token to every request
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+// Handle auth errors globally
+api.interceptors.response.use(
+    (res) => res,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem("token");
+            if (window.location.pathname !== "/login") {
+                window.location.href = "/login";
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
+// ✅ sendMessage: TWO separate parameters → sends { message: string, chat: string }
 export const sendMessage = async (message, chatId) => {
-    console.log("📤 API sendMessage:", { message, chatId });
-    const response = await api.post("/message", { message, chat: chatId });
+    // 🔍 Debug: Log exactly what we're sending
+    const payload = {
+        message: String(message || "").trim(),  // ✅ Force string
+        chat: chatId                             // ✅ Send as "chat" to match backend
+    };
+    
+    console.log("📤 chatApi.js POST /message payload:", {
+        message_type: typeof payload.message,  // Should be "string"
+        chat_type: typeof payload.chat,        // Should be "string"
+        payload
+    });
+    
+    const response = await api.post("/message", payload);
     return response.data;
 };
 
-//✅ getChat: No params needed
 export const getChat = async () => {
-    console.log("📤 API getChat: fetching all chats");
     const response = await api.get("/");
     return response.data;
 };
 
-//✅ getMessages: Accept chatId as DIRECT PARAMETER (not destructured)
 export const getMessages = async (chatId) => {
-    console.log("📤 API getMessages:", { chatId, url: `/${chatId}/messages` });
-    
     if (!chatId || chatId === "undefined") {
-        throw new Error(`Invalid chatId passed to getMessages: ${chatId}`);
+        throw new Error(`Invalid chatId: ${chatId}`);
     }
-    
     const response = await api.get(`/${chatId}/messages`);
     return response.data;
 };
 
-//✅ deleteChat: Accept direct parameter + fix URL
 export const deleteChat = async (chatId) => {
-    console.log("📤 API deleteChat:", { chatId });
-    const response = await api.delete(`/${chatId}`);  // ✅ Fixed: was `/delete${chatId}`
+    const response = await api.delete(`/${chatId}`);
     return response.data;
 };

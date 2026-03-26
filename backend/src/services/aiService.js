@@ -1,111 +1,50 @@
+// ✅ backend/src/services/aiService.js
+
 import dotenv from "dotenv";
 dotenv.config();
 
 import readline from "readline";
 import { ChatMistralAI } from "@langchain/mistralai";
-import { z } from "zod";
-import { sendEmail } from "./emailService.js";
-import { HumanMessage, SystemMessage , AIMessage} from "@langchain/core/messages";
-
-// ✅ Email schema (YOU MISSED THIS)
-const emailSchema = z.object({
-  to: z.string().email(),
-  subject: z.string(),
-  text: z.string().optional(),
-  html: z.string().optional(),
-});
+import { HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
 
 // ✅ Initialize model
-const model = new ChatMistralAI({
-  model: "mistral-small",
-  apiKey: process.env.MISTRAL_API_KEY,
-});
+let model;
+try {
+  model = new ChatMistralAI({
+    model: "mistral-small",
+    apiKey: process.env.MISTRAL_API_KEY,
+    temperature: 0.7,
+    maxTokens: 1024,
+  });
+  console.log("✅ Mistral AI model initialized");
+} catch (err) {
+  console.error("❌ Failed to initialize model:", err.message);
+  model = null;
+}
 
-// ✅ CLI setup
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-// ✅ Message history (optional for future context)
-const messages = [];
-
+// ✅ CLI function - KEEP THIS (for testing)
 function startCLI() {
+  console.log("🤖 AI CLI Started - Type 'exit' to quit\n");
+  
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
   function ask() {
-    rl.question("💬 Enter your prompt: ", async (input) => {
+    rl.question("💬 You: ", async (input) => {
       if (input.toLowerCase() === "exit") {
-        console.log("👋 Exiting...");
+        console.log("👋 Goodbye!");
         rl.close();
         return;
       }
 
       try {
-        console.log("⏳ Calling AI...");
-
-        // ✅ Proper structured prompt
         const response = await model.invoke([
-          new HumanMessage(`
-You are an AI email assistant.
-
-User request: ${input}
-
-Return ONLY raw JSON.
-DO NOT wrap in markdown.
-DO NOT use \`\`\`.
-
-Format:
-{
-  "to": "email",
-  "subject": "subject",
-  "text": "email body"
-}
-  `),
+          new SystemMessage("You are a helpful AI assistant."),
+          new HumanMessage(input)
         ]);
-
-        // ✅ FIX: use .content instead of .text
-        function safeParseJSON(text) {
-          try {
-            return JSON.parse(text);
-          } catch {
-            try {
-              const cleaned = text
-                .replace(/```json/g, "")
-                .replace(/```/g, "")
-                .trim();
-              return JSON.parse(cleaned);
-            } catch {
-              return null;
-            }
-          }
-        }
-
-        const emailData = safeParseJSON(response.content);
-
-        if (!emailData) {
-          console.log("❌ Could not parse AI response");
-          console.log("Raw:", response.content);
-          return ask();
-        }
-        // ✅ Validate using Zod
-        const parsed = emailSchema.safeParse(emailData);
-
-        if (!parsed.success) {
-          console.log("❌ Invalid email data from AI");
-          console.log(parsed.error);
-          return ask();
-        }
-
-        // ✅ Decide if email should be sent
-        const isEmailIntent =
-          input.toLowerCase().includes("send") ||
-          input.toLowerCase().includes("email");
-
-        if (isEmailIntent) {
-          await sendEmail(parsed.data);
-          console.log("📧 Email sent:", parsed.data);
-        } else {
-          console.log("🤖 AI:", response.content);
-        }
+        console.log(`🤖 AI: ${response.content}\n`);
       } catch (err) {
         console.error("❌ Error:", err.message);
       }
@@ -117,32 +56,67 @@ Format:
   ask();
 }
 
-// ✅ Export CLI
-export { startCLI };
-
+// ✅ generateResponse - Used by HTTP controllers
 export async function generateResponse(messages) {
-  const response = await model.invoke(
-    messages.map(msg => {
-      if (msg.role === "User") {
-        return new HumanMessage(msg.content);
-      } else if (msg.role === "Assistant") {
-        return new AIMessage(msg.content);
-      }
-    }).filter(Boolean) // filter out any undefined
-  );
-  return response.content;
+  try {
+    if (!model) {
+      return "AI service not available. Please try again later.";
+    }
+
+    const formattedMessages = messages
+      .sort((a, b) => new Date(a.createdAt || a.timestamp) - new Date(b.createdAt || b.timestamp))
+      .map((msg) => {
+        const role = String(msg.role || "").toLowerCase();
+        const content = String(msg.content || "").trim();
+        
+        if (role === "user") return new HumanMessage(content);
+        if (role === "assistant") return new AIMessage(content);
+        return new SystemMessage(content);
+      });
+
+    const lastMsg = formattedMessages[formattedMessages.length - 1];
+    if (!(lastMsg instanceof HumanMessage)) {
+      formattedMessages.push(new HumanMessage("Please respond."));
+    }
+
+    const response = await model.invoke(formattedMessages);
+    const aiContent = response?.content || response?.text || "";
+    
+    if (!aiContent?.trim()) {
+      return "I couldn't generate a response. Please try again.";
+    }
+
+    return aiContent.trim();
+
+  } catch (err) {
+    console.error("❌ generateResponse error:", err.message);
+    return "Sorry, I encountered an error. Please try again.";
+  }
 }
 
+// ✅ generateChatTitle
 export async function generateChatTitle(message) {
-  const response = await model.invoke([
-    new SystemMessage(`You are a helpful assistant that generates concise and descriptive titles for chat conversations.
-
-User will provide you with the first message of a chat. Based on that message, generate a short title (3-5 words) that captures the essence of the conversation. The title should be specific, clear, and not generic.
-
-Return ONLY the title. No explanation.`),
-
-    new HumanMessage(`Generate a title for this message: ${message}`)
-  ]);
-
-  return response.content.trim(); // ✅ FIXED
+  try {
+    if (!message?.trim()) return "New Chat";
+    return message.trim().slice(0, 50);
+  } catch (err) {
+    return message?.trim().slice(0, 50) || "New Chat";
+  }
 }
+
+// ✅ Test function
+export async function testAIService() {
+  try {
+    if (!model) return false;
+    const response = await model.invoke([new HumanMessage("Hello")]);
+    return !!response?.content;
+  } catch (err) {
+    return false;
+  }
+}
+
+// ✅ EXPORT everything (including startCLI for optional use)
+export { startCLI, model };
+
+// ❌ DO NOT auto-execute at module level:
+// startCLI();  // 🚫 REMOVE THIS LINE if it exists!

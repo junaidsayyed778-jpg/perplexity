@@ -3,11 +3,7 @@ import messageModel from "../models/messageModel.js";
 import { generateChatTitle, generateResponse } from "../services/aiService.js";
 import mongoose from "mongoose";
 export async function sendMessage(req, res) {
-    console.log("🔍 === sendMessage DEBUG ===");
-  console.log("  req.body:", req.body);
-  console.log("  req.user:", req.user);
-  console.log("  req.user?.id:", req.user?.id, "type:", typeof req.user?.id);
-  console.log("🔍 === END DEBUG ===\n");
+  
   const { message, chat: chatId } = req.body;
 
   let title = null;
@@ -28,28 +24,33 @@ export async function sendMessage(req, res) {
   // Create user message
   const userMessage = await messageModel.create({
     chat: chat_id,
-    content: message,
-    role: "User",
+    content: String(message || "").trim(),
+    role: "user",
   });
 
-  const messages = await messageModel.find({ chat: chat_id });
-  
-  const result = await generateResponse(messages);
+const messages = await messageModel
+    .find({ chat: chat_id })
+    .sort({ createdAt: 1 })  // ✅ Critical: Oldest first for conversation flow
+    .select("role content createdAt")  // ✅ Only fetch needed fields
+    .lean();  // ✅ Return plain JS objects, not Mongoose docs
+
+console.log(`📚 Fetched ${messages.length} messages for AI context`);
+
+// ✅ Generate AI response
+const result = await generateResponse(messages);
   
   // Create AI message
   const aiMessage = await messageModel.create({
     chat: chat_id,
-    content: result,
-    role: "Assistant",
+    content: String(result || "").trim(),
+    role: "assistant",
   });
 
   res.json({
     title,
-    chat,
-    aiMessage,
+    chat: chat.toObject ? chat.toObject() : chat,  // ✅ Convert to plain object
+  aiMessage: aiMessage.toObject ? aiMessage.toObject() : aiMessage,
   });
-
-  console.log(messages);
 }
 
 

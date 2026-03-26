@@ -1,6 +1,38 @@
 @import "tailwindcss";
 
 
+@layer base {
+  body {
+    @apply bg-[#0d0e0f] text-gray-200 antialiased;
+  }
+  
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Selection color */
+  ::selection {
+    @apply bg-teal-500/30 text-white;
+  }
+}
+
+@layer components {
+  /* Glass morphism utility */
+  .glass {
+    @apply bg-white/5 backdrop-blur-sm border border-white/10;
+  }
+  
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-teal-400 to-emerald-400 bg-clip-text text-transparent;
+  }
+  
+  /* Button hover lift */
+  .btn-lift {
+    @apply transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98];
+  }
+}
 body {
   background-color: #191A1A; /* Perplexity Dark Background */
   color: #e5e5e5;
