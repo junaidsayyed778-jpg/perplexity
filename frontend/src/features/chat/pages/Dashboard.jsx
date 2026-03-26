@@ -500,56 +500,69 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Input Area */}
-        <div className="p-3 sm:p-4 border-t border-white/5 shrink-0 bg-[#0d0e0f]">
-          <form onSubmit={handleSubmitMessage} className="max-w-4xl mx-auto">
-            <div className="relative bg-[#1a1b1e] rounded-2xl border border-white/10 
-                          focus-within:border-teal-500/50 focus-within:ring-2 
-                          focus-within:ring-teal-500/20 transition-all duration-200">
-              
-              <textarea
-                ref={textareaRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask anything... (Shift+Enter for new line)"
-                rows={1}
-                className="w-full bg-transparent text-white p-4 pr-14 rounded-2xl 
-                         resize-none focus:outline-none placeholder-gray-500 
-                         max-h-48 min-h-[56px] leading-relaxed"
-                disabled={chat.isLoading}
-              />
-              
-              <button
-                type="button"
-                className="absolute left-4 bottom-4 p-1.5 text-gray-500 hover:text-gray-300 
-                         hover:bg-white/5 rounded-lg transition-colors disabled:opacity-50"
-                title="Attach file"
-                disabled={chat.isLoading}
-              >
-                <Paperclip size={18} />
-              </button>
-              
-              <button
-                type="submit"
-                disabled={!inputValue.trim() || chat.isLoading}
-                className="absolute right-3 bottom-3 p-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 
-                         hover:from-teal-400 hover:to-emerald-500 disabled:from-gray-600 
-                         disabled:to-gray-700 text-white rounded-xl transition-all duration-200 
-                         shadow-lg shadow-teal-500/20 hover:shadow-teal-500/40 
-                         disabled:shadow-none disabled:cursor-not-allowed 
-                         hover:scale-105 active:scale-95"
-                aria-label="Send message"
-              >
-                <Send size={18} strokeWidth={2.5} />
-              </button>
-            </div>
-            
-            <p className="text-xs text-gray-600 mt-3 text-center">
-              Perplexity AI can make mistakes. Consider checking important information.
-            </p>
-          </form>
-        </div>
+{/* ✅ Input Area - Fixed Text Overlap */}
+<div className="px-3 sm:px-4 pb-3 sm:pb-4 shrink-0 bg-[#0d0e0f]">
+  <form onSubmit={handleSubmitMessage} className="max-w-4xl mx-auto">
+    
+    {/* Input Container */}
+    <div className="relative bg-[#1a1b1e] rounded-2xl border border-white/10 
+                  focus-within:border-teal-500/50 focus-within:ring-2 
+                  focus-within:ring-teal-500/20 transition-all duration-200
+                  shadow-lg shadow-black/20">
+      
+      {/* ✅ Textarea - Fixed padding to prevent overlap */}
+      <textarea
+        ref={textareaRef}
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Ask anything... (Shift+Enter for new line)"
+        rows={1}
+        className="w-full bg-transparent text-white 
+                 pl-12 pr-14 py-4 
+                 rounded-2xl resize-none focus:outline-none 
+                 placeholder-gray-500 max-h-48 min-h-[56px] 
+                 leading-relaxed text-sm sm:text-base"
+        disabled={chat.isLoading}
+      />
+      
+      {/* ✅ Attachment Button - Left aligned */}
+      <button
+        type="button"
+        className="absolute left-3 bottom-3 p-2 text-gray-500 hover:text-gray-200 
+                 hover:bg-white/5 rounded-xl transition-all duration-200 
+                 disabled:opacity-30 disabled:cursor-not-allowed"
+        title="Attach file"
+        disabled={chat.isLoading}
+        aria-label="Attach file"
+      >
+        <Paperclip size={18} strokeWidth={2} />
+      </button>
+      
+      {/* ✅ Send Button - Right aligned */}
+      <button
+        type="submit"
+        disabled={!inputValue.trim() || chat.isLoading}
+        className="absolute right-3 bottom-3 p-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 
+                 hover:from-teal-400 hover:to-emerald-500 
+                 disabled:from-gray-600 disabled:to-gray-700 
+                 text-white rounded-xl transition-all duration-200 
+                 shadow-lg shadow-teal-500/20 hover:shadow-teal-500/40 
+                 disabled:shadow-none disabled:cursor-not-allowed 
+                 hover:scale-105 active:scale-95"
+        aria-label="Send message"
+      >
+        <Send size={18} strokeWidth={2.5} />
+      </button>
+    </div>
+    
+    {/* Helper Text */}
+    <p className="text-xs text-gray-600 mt-3 text-center px-2">
+      Perplexity AI can make mistakes. Consider checking important information.
+    </p>
+    
+  </form>
+</div>
       </main>
 
       {/* ✅ Global Styles */}
