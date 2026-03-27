@@ -71,6 +71,9 @@ const authSlice = createSlice({
     setError: (state, action) => {
       state.error = action.payload;
     },
+    authInitComplete: (state) => {
+        state.loading = false
+    },
   },
 });
 
@@ -82,5 +85,6 @@ export const {
   clearAuth,
   restoreAuth,
   loginSuccess,
+  authInitComplete
 } = authSlice.actions;
 export default authSlice.reducer;

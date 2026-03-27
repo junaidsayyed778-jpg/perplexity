@@ -1,6 +1,6 @@
 import { useDispatch, useSelector } from "react-redux"
-import { loginLoading, loginSuccess, setError, setLoading, setUser } from "../authSlice.js"
-import { getMeApi, login, register } from "../service/authApi.js"
+import { authInitComplete, clearAuth, loginLoading, loginSuccess, setError, setLoading, setUser } from "../authSlice.js"
+import { getMeApi, login, logout, register } from "../service/authApi.js"
 
 export function useAuth () {
     const dispatch = useDispatch()
@@ -67,5 +67,60 @@ export function useAuth () {
     }
   }
 
-  return { handleRegister, handleLogin, getMe, loading, error: useSelector((s) => s.auth.error) };
+  async function handleLogout() {
+    try {
+      // 1. Call logout API (non-blocking)
+      await logout().catch(err => console.warn("⚠️ Logout API error:", err?.message));
+    } catch (err) {
+      console.warn("⚠️ Logout API failed:", err?.message);
+    }
+
+    // 2. Clear Redux state
+    dispatch(clearAuth());
+
+    // 3. Clear localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("chatHistory");
+
+    // 4. Clear sessionStorage
+    sessionStorage.clear();
+
+    // 5. ✅ Clear ALL cookies
+    clearAllCookies();
+
+    // 6. Mark auth init complete
+    dispatch(authInitComplete());
+
+    console.log("✅ Logout complete - all auth data cleared");
+  }
+
+  // ✅✅✅ Helper: Clear All Cookies ✅✅✅
+  function clearAllCookies() {
+    try {
+      // Get all cookies
+      const cookies = document.cookie.split(";");
+      
+      // Clear each cookie
+      cookies.forEach((cookie) => {
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        
+        // Clear with different path/domain combinations
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${window.location.hostname}`;
+        
+        // Also try clearing with common secure flags
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Strict`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+      });
+
+      console.log("✅ All cookies cleared");
+    } catch (err) {
+      console.error("❌ Failed to clear cookies:", err);
+    }
+  }
+
+  return { handleRegister, handleLogin, getMe, handleLogout, clearAllCookies, loading: useSelector((s) => s.auth.loading), error: useSelector((s) => s.auth.error) };
 }

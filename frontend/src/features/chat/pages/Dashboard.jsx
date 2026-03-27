@@ -1,9 +1,9 @@
-// ✅ src/pages/Dashboard.jsx
+// ✅ src/features/chat/pages/Dashboard.jsx
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useChat } from "../hooks/useChat";
 import { useSelector, useDispatch } from "react-redux";
-import { setCurrentChatId } from "../chatSlice.js"
-import { clearAuth } from "../../auth/authSlice.js" // ✅ Auth slice se import
+import { setCurrentChatId } from "../chatSlice.js";
+import { clearAuth } from "../../auth/authSlice.js";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -14,9 +14,9 @@ import {
   Sparkles, User, Bot, Copy, Check, ChevronLeft, RefreshCw,
   Paperclip, X
 } from "lucide-react";
-import { logout } from "../../auth/service/authApi.js" // ✅ Correct path
+import { logout } from "../../auth/service/authApi.js";
 
-// ✅ Premium MessageContent - No unused vars
+// ✅ MessageContent Component - NO TypeScript
 const MessageContent = ({ content }) => {
   return (
     <div className="prose prose-invert prose-sm max-w-none
@@ -94,17 +94,18 @@ const MessageContent = ({ content }) => {
   );
 };
 
+// ✅ MAIN DASHBOARD COMPONENT
 const Dashboard = () => {
   const chat = useChat();
   const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
 
-  // ✅ UI State
+  // ✅✅✅ STATE - NO TypeScript Types ✅✅✅
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [copiedId, setCopiedId] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false); // ✅ NO : boolean
   
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
@@ -129,7 +130,7 @@ const Dashboard = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat.messages, chat.isLoading]);
 
-  // ✅ Toast helper
+  // ✅✅✅ showToast - NO TypeScript ✅✅✅
   const showToast = useCallback((message, type = "success") => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: "", type: "success" }), 2500);
@@ -147,56 +148,37 @@ const Dashboard = () => {
     }
   };
 
-  // ✅✅✅ FIXED LOGOUT FUNCTION - Complete Flow ✅✅✅
+  // ✅✅✅ LOGOUT FUNCTION - NO TypeScript ✅✅✅
   const handleLogout = async () => {
-    // Prevent multiple clicks
     if (isLoggingOut) return;
     
     setIsLoggingOut(true);
     
     try {
-      // 1. Call logout API (backend will clear httpOnly cookie)
-      await logout();
-      console.log("✅ Logout API success");
+      logout().catch(err => console.warn("⚠️ Logout API error:", err?.message));
     } catch (err) {
-      // ⚠️ Even if API fails, we still logout client-side
-      console.warn("⚠️ Logout API failed, proceeding with client-side logout:", err?.message);
-    } finally {
-      // 2. ✅ ALWAYS execute these - in finally block so they run even if API fails
-      console.log("🧹 Clearing client-side auth state...");
-      
-      // Clear Redux auth state
-      dispatch(clearAuth());
-      
-      // Clear localStorage
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("chatHistory");
-      
-      // Clear sessionStorage
-      sessionStorage.clear();
-      
-      // Clear cookies (client-side accessible ones)
-      document.cookie.split(";").forEach((cookie) => {
-        const eqPos = cookie.indexOf("=");
-        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-        // Clear cookie by setting expired date
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}; SameSite=Strict`;
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-      });
-      
-      // 3. Show toast
-      showToast("Logged out successfully", "success");
-      
-      // 4. ✅ FORCE REDIRECT to login - with small delay for UX
-      setTimeout(() => {
-        console.log("🔄 Redirecting to /login...");
-        window.location.replace("/login"); // replace() prevents back button to dashboard
-      }, 800);
-      
-      // 5. Reset loading state (after redirect initiated)
-      setIsLoggingOut(false);
+      console.warn("⚠️ Logout API failed:", err?.message);
     }
+
+    dispatch(clearAuth());
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("chatHistory");
+    sessionStorage.clear();
+    
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+    
+    showToast("Logged out successfully", "success");
+    
+    setTimeout(() => {
+      window.location.href = "/login";
+    }, 500);
+    
+    setTimeout(() => {
+      setIsLoggingOut(false);
+    }, 1000);
   };
 
   const handleSubmitMessage = (e) => {
@@ -226,11 +208,10 @@ const Dashboard = () => {
     }
   };
 
-  // ✅ Premium Bubble Message Item
+  // ✅ Message Item
   const MessageItem = useMemo(() => {
     return ({ msg, index }) => {
       const isUser = msg.role === "user";
-      // ✅ Removed unused isAssistant variable
       
       return (
         <div
@@ -240,8 +221,6 @@ const Dashboard = () => {
           }`}
         >
           <div className={`max-w-4xl mx-auto flex gap-4 ${isUser ? "flex-row-reverse" : ""}`}>
-            
-            {/* Avatar */}
             <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
               isUser 
                 ? "bg-gradient-to-br from-teal-400 to-emerald-500 text-white shadow-teal-500/25" 
@@ -250,17 +229,12 @@ const Dashboard = () => {
               {isUser ? <User size={18} strokeWidth={2.5} /> : <Bot size={18} strokeWidth={2.5} />}
             </div>
 
-            {/* Message Bubble */}
             <div className={`flex-1 min-w-0 max-w-[85%] sm:max-w-[75%] ${isUser ? "text-right" : ""}`}>
-              
-              {/* Bubble Container */}
               <div className={`inline-block rounded-2xl px-4 py-3 sm:px-5 sm:py-4 shadow-xl transition-all duration-200 ${
                 isUser 
                   ? "bg-gradient-to-br from-teal-500 to-emerald-600 text-white rounded-tr-sm" 
                   : "bg-[#1e1f20] border border-white/10 text-gray-200 rounded-tl-sm hover:border-white/20"
               }`}>
-                
-                {/* Message Header (AI only) */}
                 {!isUser && msg.role === "assistant" && (
                   <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-white/5">
                     <span className="text-xs font-semibold text-violet-400 flex items-center gap-1.5">
@@ -278,7 +252,6 @@ const Dashboard = () => {
                   </div>
                 )}
 
-                {/* Content */}
                 <div className={`text-sm sm:text-base leading-relaxed ${isUser ? "text-white" : ""}`}>
                   {isUser ? (
                     <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -287,7 +260,6 @@ const Dashboard = () => {
                   )}
                 </div>
 
-                {/* User message copy button */}
                 {isUser && (
                   <button
                     onClick={() => handleCopy(msg.content, msg.id)}
@@ -300,7 +272,6 @@ const Dashboard = () => {
                 )}
               </div>
 
-              {/* Timestamp */}
               {msg.timestamp && (
                 <span className={`text-xs text-gray-600 mt-2 block ${isUser ? "text-right" : ""}`}>
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -316,7 +287,7 @@ const Dashboard = () => {
   return (
     <div className="flex h-screen bg-[#0a0b0d] text-gray-200 font-sans overflow-hidden selection:bg-teal-500/30">
       
-      {/* ✅ Premium Toast */}
+      {/* ✅ Toast */}
       {toast.show && (
         <div className="fixed top-4 right-4 z-50 animate-slide-in">
           <div className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border backdrop-blur-md ${
@@ -338,7 +309,7 @@ const Dashboard = () => {
         />
       )}
 
-      {/* ✅ SIDEBAR - Premium Glass Design */}
+      {/* ✅ SIDEBAR */}
       <aside
         className={`
           fixed inset-y-0 left-0 z-30
@@ -349,7 +320,6 @@ const Dashboard = () => {
           flex flex-col
         `}
       >
-        {/* ✅ New Chat Button - Simple & Attractive */}
         <div className="p-4 border-b border-white/5">
           <button
             onClick={handleNewChat}
@@ -363,7 +333,6 @@ const Dashboard = () => {
           </button>
         </div>
 
-        {/* Chat History */}
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
           <div className="flex items-center justify-between px-3 py-2 mb-1">
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">History</h3>
@@ -420,16 +389,14 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* ✅ User Profile - MOVED TO BOTTOM */}
         <div className="p-4 border-t border-white/5 space-y-2">
-          {/* Settings */}
           <button className="w-full flex items-center gap-3 px-3.5 py-3 text-gray-400 
                            hover:bg-white/5 hover:text-white rounded-xl transition-all duration-200 group">
             <Settings size={18} className="group-hover:rotate-45 transition-transform duration-300" />
             <span className="text-sm font-medium">Settings</span>
           </button>
           
-          {/* ✅ Logout Button - FIXED */}
+          {/* ✅ LOGOUT BUTTON */}
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}
@@ -445,7 +412,6 @@ const Dashboard = () => {
             <span className="text-sm font-medium">{isLoggingOut ? "Logging out..." : "Logout"}</span>
           </button>
 
-          {/* User Info Card */}
           <div className="mt-3 p-3 rounded-xl bg-gradient-to-br from-white/5 to-white/[0.02] 
                         border border-white/10 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 
@@ -463,7 +429,6 @@ const Dashboard = () => {
       {/* ✅ MAIN CHAT AREA */}
       <main className="flex-1 flex flex-col h-full w-full min-w-0 bg-gradient-to-b from-[#0a0b0d] to-[#0d0e10]">
         
-        {/* Header */}
         <header className="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0 
                          bg-[#0a0b0d]/80 backdrop-blur-md sticky top-0 z-10">
           <button
@@ -488,10 +453,8 @@ const Dashboard = () => {
           <div className="w-10" />
         </header>
 
-        {/* Messages Area */}
         <div className="flex-1 overflow-y-auto scroll-smooth">
           {chat.messages?.length === 0 ? (
-            // ✅ Premium Empty State
             <div className="flex flex-col items-center justify-center h-full px-6 text-center">
               <div className="relative mb-8">
                 <div className="absolute inset-0 bg-gradient-to-r from-teal-500/30 via-violet-500/30 to-emerald-500/30 
@@ -509,7 +472,6 @@ const Dashboard = () => {
                 Research, learn, and create with confidence.
               </p>
               
-              {/* Quick Suggestions - Premium Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl w-full px-4">
                 {[
                   { icon: "🔬", text: "Explain quantum computing simply" },
@@ -537,13 +499,11 @@ const Dashboard = () => {
               </div>
             </div>
           ) : (
-            // ✅ Messages List with Bubble Layout
             <>
               {chat.messages.map((msg, index) => (
                 <MessageItem key={msg?.id || msg?._id || index} msg={msg} index={index} />
               ))}
               
-              {/* Premium Loading Indicator */}
               {chat.isLoading && (
                 <div className="py-5 px-3 sm:px-6 bg-[#151618]/30">
                   <div className="max-w-4xl mx-auto flex gap-4">
@@ -571,7 +531,6 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* ✅ Premium Input Area */}
         <div className="px-4 pb-4 pt-2 shrink-0 bg-gradient-to-t from-[#0a0b0d] via-[#0a0b0d]/95 to-transparent">
           <form onSubmit={handleSubmitMessage} className="max-w-4xl mx-auto">
             <div className="relative bg-[#15161a] rounded-2xl border border-white/10 
@@ -579,7 +538,6 @@ const Dashboard = () => {
                           focus-within:ring-teal-500/20 transition-all duration-200
                           shadow-2xl shadow-black/30 overflow-hidden">
               
-              {/* Gradient accent line */}
               <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-teal-500 via-violet-500 to-emerald-500 opacity-0 
                            focus-within:opacity-100 transition-opacity duration-300" />
               
@@ -598,7 +556,6 @@ const Dashboard = () => {
                 disabled={chat.isLoading || isLoggingOut}
               />
               
-              {/* Attachment Button */}
               <button
                 type="button"
                 className="absolute left-3 bottom-3 p-2 text-gray-500 hover:text-teal-400 
@@ -610,7 +567,6 @@ const Dashboard = () => {
                 <Paperclip size={18} strokeWidth={2} />
               </button>
               
-              {/* Send Button - Premium */}
               <button
                 type="submit"
                 disabled={!inputValue.trim() || chat.isLoading || isLoggingOut}
@@ -634,7 +590,6 @@ const Dashboard = () => {
         </div>
       </main>
 
-      {/* ✅ Global Premium Styles */}
       <style>{`
         @keyframes slide-in {
           from { opacity: 0; transform: translateX(100px) scale(0.95); }
@@ -642,7 +597,6 @@ const Dashboard = () => {
         }
         .animate-slide-in { animation: slide-in 0.25s ease-out; }
         
-        /* Premium Scrollbar */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { 
@@ -653,12 +607,10 @@ const Dashboard = () => {
           background: linear-gradient(to bottom, #4b5563, #6b7280); 
         }
         
-        /* Smooth focus transitions */
         input:focus, textarea:focus, button:focus {
           outline: none;
         }
         
-        /* Selection */
         ::selection {
           background: rgba(20, 184, 166, 0.3);
           color: white;
