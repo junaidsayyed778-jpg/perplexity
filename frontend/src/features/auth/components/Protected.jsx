@@ -1,20 +1,27 @@
-import React from 'react'
-import { useSelector } from 'react-redux'
-import { Navigate } from 'react-router'
+// ✅ src/features/auth/components/Protected.jsx
+import { Navigate, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const Protected = ({ children }) => {
+  const { isAuthenticated, user, loading } = useSelector((state) => state.auth);
+  const location = useLocation();
 
-    const user = useSelector(state => state.auth.user)
-    const loading = useSelector(state => state.auth.loading)
+  // ✅ Show loading ONLY during initial auth verification
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0b0d]">
+        <div className="w-8 h-8 border-3 border-teal-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
-    if(loading){
-        return <div>Loading...</div>
-    }
+  // ✅ Redirect to login if not authenticated
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
-    if(!user){
-        return <Navigate to={"/login"} replace />
-    }
-    return children
-}
+  // ✅ Render children if authenticated
+  return children;
+};
 
-export default Protected
+export default Protected;

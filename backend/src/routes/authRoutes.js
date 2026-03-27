@@ -45,5 +45,5 @@ authRouter.get('/get-me', authUser, getMe)
  * @desc Logout user by blacklisting the token
  * @access Private
  */
-authRouter.post("/logout", logout)
+authRouter.post("/logout", authUser, logout)
 export default authRouter;

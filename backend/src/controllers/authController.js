@@ -1,3 +1,4 @@
+import blacklistModel from "../models/blacklistSchema.js";
 import blacklistSchema from "../models/blacklistSchema.js";
 import userModel from "../models/userModel.js";
 import jwt from "jsonwebtoken";
@@ -167,38 +168,21 @@ export async function getMe(req, res) {
   }
 }
 
-export async function logout(req, res){
+export async function logout(req, res) {
   try{
-    const token = req.cookies.token
-
-    if(!token){
-      return res.status(400).json({
-        message: "No token found",
-        success: false,
-      })
+    const token =req.cookies.token || req.headers.authorization?.split(' ')[1];
+    if(token){
+      //add token to blacklist
+      await blacklistModel.create({ token, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000  )})
     }
 
-    const decoded = jwt.decode(token)
-
-    await blacklistModel.create({
-      token,
-      expiresAt: new Date(decoded.exp * 1000)
-    })
-
-    //clear cookie
-    res.clearCookie("token")
-
-    res.status(200).json({
-      message: "Logout successfully",
-      success: true,
-    })
+    // clear cookie
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: true,
+    
+    });
   }catch(err){
-     console.log("Logout error:", error.message);
-
-    res.status(500).json({
-      message: "Internal server error",
-      success: false,
-   
-  })
-}
+    console.log("Logout error:", err.message);
+  }
 }
