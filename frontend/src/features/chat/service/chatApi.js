@@ -1,7 +1,7 @@
 // ✅ src/service/chatApi.js - COMPLETE REPLACEMENT
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api/chats";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const api = axios.create({
     baseURL: API_BASE,
@@ -46,12 +46,12 @@ export const sendMessage = async (message, chatId) => {
         payload
     });
     
-    const response = await api.post("/message", payload);
+    const response = await api.post("/api/chats/message", payload);
     return response.data;
 };
 
 export const getChat = async () => {
-    const response = await api.get("/");
+    const response = await api.get("/api/chats/");
     return response.data;
 };
 
@@ -59,11 +59,11 @@ export const getMessages = async (chatId) => {
     if (!chatId || chatId === "undefined") {
         throw new Error(`Invalid chatId: ${chatId}`);
     }
-    const response = await api.get(`/${chatId}/messages`);
+    const response = await api.get(`/api/chats/${chatId}/messages`);
     return response.data;
 };
 
 export const deleteChat = async (chatId) => {
-    const response = await api.delete(`/${chatId}`);
+    const response = await api.delete(`/api/chats/${chatId}`);
     return response.data;
 };

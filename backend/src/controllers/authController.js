@@ -108,10 +108,11 @@ export async function login(req, res) {
     );
 
     // send cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: false, // true in production (HTTPS)
-    });
+  res.cookie("token", token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "None"
+});
 
     res.status(200).json({
       message: "Login successful",
